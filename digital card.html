@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OC Vision - 3D Digital Card</title>
+    <style>
+        :root {
+            --card-width: 320px;
+            --card-height: 560px;
+            --card-thickness: 12px; /* Slightly thicker for better 3D feel */
+            --card-radius: 20px;    /* Proper rounded corners */
+            --bg-color: #121212;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle at center, #2a2a2a 0%, #000000 100%);
+            overflow: hidden;
+            font-family: 'Segoe UI', sans-serif;
+            perspective: 1500px; /* Increased perspective for less distortion */
+        }
+
+        .scene {
+            width: var(--card-width);
+            height: var(--card-height);
+            position: relative;
+            cursor: grab;
+            /* Center the scene slightly better */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .scene:active {
+            cursor: grabbing;
+        }
+
+        .card {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transform-origin: center center;
+            /* Initial state */
+            transform: rotateY(0deg) rotateX(0deg);
+        }
+
+        /* --- FACES --- */
+        .card__face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: var(--card-radius);
+            background-size: cover; 
+            background-position: center;
+            background-repeat: no-repeat;
+            backface-visibility: hidden; /* Hides the back of the image when flipped */
+            /* Add a subtle border to define edges */
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* FRONT */
+        .card__face--front {
+            /* DIRECT IMAGE LINK for Front */
+            background-image: url('https://i.ibb.co/xKk67C8C/ocvision-page-0001.jpg');
+            transform: translateZ(calc(var(--card-thickness) / 2));
+        }
+
+        /* BACK */
+        .card__face--back {
+            /* DIRECT IMAGE LINK for Back */
+            background-image: url('https://i.ibb.co/nNQx9v26/ocvision-page-0002.jpg');
+            transform: rotateY(180deg) translateZ(calc(var(--card-thickness) / 2));
+        }
+
+        /* --- THICKNESS SIDES --- */
+        /* To make rounded corners work in 3D, we shorten the sides so they don't poke out */
+        .card__side {
+            position: absolute;
+            background: #e0e0e0; /* White/Light Grey plastic look */
+            /* Subtle texture for realism */
+            background-image: linear-gradient(to bottom, #dcdcdc, #f0f0f0, #dcdcdc);
+            backface-visibility: hidden;
+        }
+
+        /* Right Side */
+        .card__side--right {
+            width: var(--card-thickness);
+            height: calc(100% - (var(--card-radius) * 1.5)); /* Shorten height */
+            top: calc(var(--card-radius) * 0.75);
+            right: calc(var(--card-thickness) / -2);
+            transform: rotateY(90deg) translateZ(0);
+        }
+
+        /* Left Side */
+        .card__side--left {
+            width: var(--card-thickness);
+            height: calc(100% - (var(--card-radius) * 1.5));
+            top: calc(var(--card-radius) * 0.75);
+            left: calc(var(--card-thickness) / -2);
+            transform: rotateY(-90deg) translateZ(0);
+        }
+
+        /* Top Side */
+        .card__side--top {
+            width: calc(100% - (var(--card-radius) * 1.5)); /* Shorten width */
+            height: var(--card-thickness);
+            left: calc(var(--card-radius) * 0.75);
+            top: calc(var(--card-thickness) / -2);
+            transform: rotateX(90deg) translateZ(0);
+        }
+
+        /* Bottom Side */
+        .card__side--bottom {
+            width: calc(100% - (var(--card-radius) * 1.5));
+            height: var(--card-thickness);
+            left: calc(var(--card-radius) * 0.75);
+            bottom: calc(var(--card-thickness) / -2);
+            transform: rotateX(-90deg) translateZ(0);
+        }
+
+        /* Shadows for depth */
+        .card {
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+        }
+
+        /* --- LIGHTING / GLARE --- */
+        .glare {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            border-radius: var(--card-radius);
+            background: linear-gradient(115deg, transparent 40%, rgba(255,255,255,0.2) 45%, rgba(255,255,255,0.4) 50%, transparent 55%);
+            mix-blend-mode: overlay;
+            opacity: 0.8;
+            pointer-events: none;
+            transform: translateZ(calc(var(--card-thickness) / 2 + 1px));
+        }
+
+        .glare-back {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            border-radius: var(--card-radius);
+            background: linear-gradient(115deg, transparent 40%, rgba(255,255,255,0.2) 45%, rgba(255,255,255,0.4) 50%, transparent 55%);
+            mix-blend-mode: overlay;
+            opacity: 0.8;
+            pointer-events: none;
+            transform: rotateY(180deg) translateZ(calc(var(--card-thickness) / 2 + 1px));
+        }
+
+        .instructions {
+            position: absolute;
+            bottom: 30px;
+            color: rgba(255,255,255,0.5);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 2px;
+            pointer-events: none;
+            user-select: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="scene" id="scene">
+        <div class="card" id="card">
+            
+            <!-- Front Face -->
+            <div class="card__face card__face--front">
+                <div class="glare"></div>
+            </div>
+
+            <!-- Back Face -->
+            <div class="card__face card__face--back">
+                <div class="glare-back"></div>
+            </div>
+
+            <!-- Thickness Sides (Rounded Corner Fix) -->
+            <div class="card__side card__side--right"></div>
+            <div class="card__side card__side--left"></div>
+            <div class="card__side card__side--top"></div>
+            <div class="card__side card__side--bottom"></div>
+
+        </div>
+    </div>
+
+    <div class="instructions">
+        Drag to Flip
+    </div>
+
+    <script>
+        const scene = document.getElementById('scene');
+        const card = document.getElementById('card');
+        const glares = document.querySelectorAll('.glare, .glare-back');
+
+        let isDragging = false;
+        let startX, startY;
+        let currentRotationY = 0;
+        let currentRotationX = 0;
+        let velocityX = 0;
+        let velocityY = 0;
+        let lastX, lastY;
+        let animationFrame;
+
+        // Interaction Handling
+        function handleStart(x, y) {
+            isDragging = true;
+            startX = x;
+            startY = y;
+            lastX = x;
+            lastY = y;
+            card.style.cursor = 'grabbing';
+            card.style.transition = 'none';
+            cancelAnimationFrame(animationFrame);
+        }
+
+        function handleEnd() {
+            if (!isDragging) return;
+            isDragging = false;
+            card.style.cursor = 'grab';
+            applyInertia();
+        }
+
+        function handleMove(x, y) {
+            if (!isDragging) return;
+            
+            const deltaX = x - lastX;
+            const deltaY = y - lastY;
+
+            // Update Rotations
+            // X-axis (Tilt): Heavily restricted so it stays "Vertical" (Max +/- 15 deg)
+            currentRotationX -= deltaY * 0.3;
+            currentRotationX = Math.max(-15, Math.min(15, currentRotationX));
+
+            // Y-axis (Flip): Free rotation
+            currentRotationY += deltaX * 0.5;
+
+            updateCardTransform();
+            updateGlare(x, y);
+
+            velocityX = deltaX;
+            velocityY = deltaY;
+            lastX = x;
+            lastY = y;
+        }
+
+        // Mouse Events
+        scene.addEventListener('mousedown', (e) => handleStart(e.pageX, e.pageY));
+        window.addEventListener('mouseup', handleEnd);
+        window.addEventListener('mousemove', (e) => {
+            if (isDragging) e.preventDefault();
+            handleMove(e.pageX, e.pageY);
+        });
+
+        // Touch Events
+        scene.addEventListener('touchstart', (e) => handleStart(e.touches[0].pageX, e.touches[0].pageY));
+        window.addEventListener('touchend', handleEnd);
+        window.addEventListener('touchmove', (e) => {
+            if (isDragging) {
+                // Prevent scrolling while interacting with card
+                e.preventDefault(); 
+                handleMove(e.touches[0].pageX, e.touches[0].pageY);
+            }
+        });
+
+        function updateCardTransform() {
+            card.style.transform = `rotateY(${currentRotationY}deg) rotateX(${currentRotationX}deg)`;
+        }
+
+        function updateGlare(x, y) {
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+            
+            // Calculate light position based on mouse/touch
+            const percentX = (x / window.innerWidth) * 100;
+            const percentY = (y / window.innerHeight) * 100;
+
+            glares.forEach(glare => {
+                glare.style.background = `linear-gradient(${110 + (x/50)}deg, transparent 30%, rgba(255,255,255,0.2) ${percentX}%, transparent 70%)`;
+            });
+        }
+
+        function applyInertia() {
+            const friction = 0.92; // Stops a bit faster
+            
+            function step() {
+                if (Math.abs(velocityX) < 0.05 && Math.abs(velocityY) < 0.05) return;
+
+                velocityX *= friction;
+                
+                currentRotationY += velocityX;
+                
+                // We do NOT apply inertia to X (tilt) to keep it stable
+                // currentRotationX -= velocityY; 
+
+                updateCardTransform();
+                animationFrame = requestAnimationFrame(step);
+            }
+            step();
+        }
+
+        // Initialize at 0
+        updateCardTransform();
+    </script>
+</body>
+</html>
